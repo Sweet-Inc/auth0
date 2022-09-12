@@ -1,99 +1,35 @@
 const express = require('express');
-const { check, validationResult } = require('express-validator');
-const gravatar = require('gravatar');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const router = express.Router();
-const app = express();
-const Admin = require('./../../models/Admin');
-const auth = require('./../../middleware/auth');
+const isValidRequest = require('../../utils/isValidRequest');
 
-// @route   POST api/admin/register
-// @desc    Register admin
+// @route   POST api/validate
+// @desc    validate user's role
 // @access  Public
-router.post(
-  '/register',
-  [
-    check('name', 'Name is required').not().isEmpty(),
-    check('email', 'Please include a valid email').isEmail(),
-    check(
-      'password',
-      'Please enter a password with 6 or more character'
-    ).isLength({ min: 6 }),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        errors: errors.array(),
-      });
-    }
-    const { name, email, password } = req.body;
-    const avatar = gravatar.url(email, {
-      protocol: 'https',
-      s: '200',
-      r: 'pg',
-      d: 'identicon',
-    });
-
-    try {
-      let admin = new Admin({
-        name,
-        email,
-        avatar,
-        password,
-      });
-
-      // Encrypt password
-      const salt = await bcrypt.genSalt(10);
-      admin.password = await bcrypt.hash(password, salt);
-      await admin.save();
-
-      // Return jsonwebtoken
-      const payload = {
-        admin: {
-          id: admin.id,
-        },
-      };
-
-      jwt.sign(
-        payload,
-        config.get('jwtSecret'),
-        { expiresIn: 2 },
-        (err, token) => {
-          if (err) throw err;
-          res.json({ token });
-        }
-      );
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
-    }
-  }
-);
-
-// @route   POST api/admin/login
-// @desc    Login admin
-// @access  Public
-router.post('/login', async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      errors: errors.array(),
-    });
-  }
-  const { email, password } = req.body;
+router.post('/', async (req, res) => {
   try {
-    jwt.sign(
-      payload,
-      config.get('jwtSecret'),
-      { expiresIn: 3600 },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token });
-      }
+    const params = {
+      access_token: req.headers['x-access-token'],
+      scope: req.body.scope,
+    };
+
+    const isValidRequestToGetAccessToken = isValidRequest({ ...params });
+
+    if (!isValidRequestToGetAccessToken) {
+      return res.status(500).send('Missing params');
+    }
+
+    const decoded = jwt.verify(
+      req.headers['x-access-token'],
+      config.get('jwtSecret')
     );
+
+    if (req.body.scope === decoded.userInfo.scope) {
+      res.json({ isPassed: true });
+    } else {
+      res.json({ isPassed: false });
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

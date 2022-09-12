@@ -2,14 +2,31 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const router = express.Router();
+const isValidRequest = require('../../utils/isValidRequest');
 
-// @route   GET api/admin/login
-// @desc    Login admin
+// @route   GET api/auth
+// @desc    Get access_token
 // @access  Public
-router.get('/', async (_, res) => {
+router.post('/', async (req, res) => {
   try {
+    const params = {
+      'x-correlationid': req.headers['x-correlationid'],
+      userInfo: {
+        ...req.body.userInfo,
+        scope: req.body.scope,
+      },
+    };
+    const isValidRequestToGetAccessToken = isValidRequest({ ...params });
+
+    if (!isValidRequestToGetAccessToken) {
+      return res.status(500).send('Missing params');
+    }
+
     const payload = {
-      user: '1',
+      userInfo: {
+        ...req.body.userInfo,
+        scope: req.body.scope,
+      },
     };
     jwt.sign(
       payload,
