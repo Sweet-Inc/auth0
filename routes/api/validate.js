@@ -24,12 +24,13 @@ router.post('/', async (req, res) => {
       req.headers['x-access-token'],
       config.get('jwtSecret')
     );
+    let scope = req.body.scope;
+    console.log(scope);
 
-    if (req.body.scope === decoded.userInfo.scope) {
-      res.json({ isPassed: true });
-    } else {
-      res.json({ isPassed: false });
-    }
+    res.json({ isPassed: scope.includes(decoded.userInfo.scope) });
+    var isPassed = scope.includes(decoded.userInfo.scope);
+    console.log(res.json);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

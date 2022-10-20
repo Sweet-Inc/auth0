@@ -10,12 +10,13 @@ const isValidRequest = require('../../utils/isValidRequest');
 router.post('/', async (req, res) => {
   try {
     const params = {
-      'x-correlationid': req.headers['x-correlationid'],
+    'x-correlationid': req.headers['x-correlationid'],
       userInfo: {
         ...req.body.userInfo,
         scope: req.body.scope,
       },
     };
+    console.log(req.headers)
     const isValidRequestToGetAccessToken = isValidRequest({ ...params });
 
     if (!isValidRequestToGetAccessToken) {
